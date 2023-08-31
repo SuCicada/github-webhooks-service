@@ -1,0 +1,17 @@
+### Example user template template
+### Example user template
+
+# IntelliJ project files
+.idea
+*.iml
+build
+node_modules
+.env*
+yarn-error.log
+dist
+package-lock.json
+/html
+/node
+/api/*.js
+/src/*.js
+/src/*.js.map
