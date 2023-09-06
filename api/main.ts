@@ -1,12 +1,9 @@
 import {GitHubApi} from "./github";
 import {NotionApi} from "./notion";
-import {ApiConfig, UpdateRepoWebhooksType} from "./types";
+import {UpdateRepoWebhooksType} from "./types";
 import {array2map, GitHubRepoType2RepoWebhooksType, RepoWebhooksType2GitHubRepoType} from "./utils";
 import isEqual from "lodash/isEqual";
 import _ from "lodash";
-import path from "path";
-import * as fs from "fs";
-import * as yaml from 'js-yaml';
 import {apiConfig} from "./config";
 
 
@@ -76,7 +73,7 @@ export class Service {
             .map(async (r) => {
                 // let repoWebhooks: RepoWebhooksType = GitHubRepoType2RepoWebhooksType(webhookMap, r)
                 await this.notion.repoWebhooks.set(r)
-                console.log(`set ${r.repo} success`)
+                console.log(`[updateNotionRepoInfo] set ${r.repo} success`)
             })
         await Promise.all(acts)
 
@@ -97,15 +94,24 @@ export class Service {
                         if (!(_.isEmpty(repoWebhooks))) {
                             repoWebhooks.id = nowRepo.id
                             let res = await this.notion.repoWebhooks.updatePage(repoWebhooks)
-                            console.log(`update ${r.repo} success`)
+                            console.log(`[updateNotionRepoInfo] update ${r.repo} success`)
                             return res
                         }
                     }
                     return null
                 })
+
+            let notionDeleteOldActs = Object.values(nowRepoInfoMap)
+                .map(async (r) => {
+                    if (fromGitRepos.find(g => g.repo === r.repo) === undefined) {
+                        console.log(`[updateNotionRepoInfo] delete ${r.repo}`)
+                        await this.notion.repoWebhooks.delete(r.id)
+                    }
+                })
+
             // .filter(r => r !== null)
             // console.log("deepSyncActs: ", deepSyncActs.length)
-            await Promise.all(deepSyncActs)
+            await Promise.all([...deepSyncActs, ...notionDeleteOldActs])
         }
     }
 
@@ -119,9 +125,9 @@ export class Service {
                 let update = RepoWebhooksType2GitHubRepoType(webhooks, r)
                 let currentWebhooks = await this.github.getWebhooks(update.owner, update.repo)
                 let currentWebhookUrls = currentWebhooks.data.map(h => h.config.url)
-                if (!isEqual(currentWebhookUrls, update.webhooks)){
+                if (!isEqual(currentWebhookUrls, update.webhooks)) {
                     await this.github.updateWebhook(update.owner, update.repo, update.webhooks)
-                    console.log(`update `,update.owner, update.repo, update.webhooks)
+                    console.log(`update `, update.owner, update.repo, update.webhooks)
                 }
             })
         await Promise.all(acts)
@@ -145,19 +151,3 @@ export class Service {
         await Promise.all(acts)
     }
 }
-
-// ;(async () => {
-//
-//     // res = await github.getRepoInfo()
-//     // res = res
-//     //     .map(r =>r.hookUrls )
-//     //     .flat()
-//     // res = [...new Set(res)]
-//     //
-//     // console.log(res)
-//     // await notion.webhooks.set(["https://www.baidu.com"])
-//     // await updateHooksSelect()
-//     await updateNotionRepoInfo(true)
-// // res = await notion.repoWebhooks.get_all()
-// // console.log(res)
-// })()

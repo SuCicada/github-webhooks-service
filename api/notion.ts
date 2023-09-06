@@ -108,6 +108,13 @@ export class RepoWebhooks {
             },
         });
     }
+
+    async delete(id: string) {
+        await this.notion.pages.update({
+            page_id: id,
+            archived: true,
+        })
+    }
 }
 
 export class Webhooks {

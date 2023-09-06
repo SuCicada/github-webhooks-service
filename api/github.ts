@@ -103,7 +103,7 @@ export class GitHubApi {
                             owner: r.owner.login,
                             html_url: r.html_url,
                         }
-                        console.log(`[GitHubApi] getWebhooks: ${index}/${repos.length}`)
+                        // console.log(`[GitHubApi] getWebhooks: ${index}/${repos.length}`)
                         index++
                         return res
                     } catch (error) {

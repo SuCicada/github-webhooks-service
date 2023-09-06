@@ -4,10 +4,10 @@ export interface WebhookType extends Record<string, any> {
 }
 
 export interface UpdateRepoWebhooksType extends Partial<RepoWebhooksType> {
-    id?: string,
 }
 
 export interface RepoWebhooksType extends GitHubRepoType {
+    id: string,
     webhooks: string[],  //  url tag, not real
 }
 

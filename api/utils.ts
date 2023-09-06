@@ -12,7 +12,7 @@ export function array2map<T extends Record<string, string>>(arr: T [], key: stri
 }
 
 
-export function GitHubRepoType2RepoWebhooksType(webhooks:  WebhookType[], t: GitHubRepoType) {
+export function GitHubRepoType2RepoWebhooksType(webhooks: WebhookType[], t: GitHubRepoType) {
     let webhookMap = array2map(webhooks, "url")
     let webhookNames = t.webhooks.map(url => {
         return webhookMap[url].name
@@ -22,6 +22,7 @@ export function GitHubRepoType2RepoWebhooksType(webhooks:  WebhookType[], t: Git
         .seconds(0) // because notion seconds is 0
         .toISOString(true)
     let repoWebhooks: RepoWebhooksType = {
+        id: "",
         repo: t.repo,
         permission: t.permission,
         webhooks: webhookNames,
@@ -31,7 +32,8 @@ export function GitHubRepoType2RepoWebhooksType(webhooks:  WebhookType[], t: Git
     }
     return repoWebhooks
 }
-export function RepoWebhooksType2GitHubRepoType(webhooks:  WebhookType[], t:RepoWebhooksType){
+
+export function RepoWebhooksType2GitHubRepoType(webhooks: WebhookType[], t: RepoWebhooksType) {
     let webhookTagMap = array2map(webhooks, "name")
     let webhookUrls = t.webhooks.map(name => {
         return webhookTagMap[name].url
