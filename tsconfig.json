@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
     "module": "CommonJS",
+//            "module": "esnext",
     "types": [
       "node"
     ],
     "target": "es2015",
+    //    "target": "es5",
     "lib": [
       "dom",
       "dom.iterable",
@@ -22,17 +24,19 @@
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
     "strictNullChecks": false,
-    //    "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
-    //    "jsx": "react-jsx"
+    //        "jsx": "react-jsx",
     "jsx": "react"
+    //    "baseUrl": "./src"
   },
   "include": [
-    //    "**/**",
-    "api",
-    "src"
+    "./**/*",
+    "node_modules/@types/jest/index.d.ts"
   ]
+  //  "exclude": [
+  //    "**/*.tsx"
+  //  ]
 }

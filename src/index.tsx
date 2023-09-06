@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App, {UpdateRepoInfoButton} from './App';
+import App, {UpdateRepoInfoButton, TestButton, UpdateGithubWebhooksButton, UpdateHooksSelectButton} from './App';
 import {HashRouter, Route, Routes} from "react-router-dom";
 
 const root = ReactDOM.createRoot(
@@ -14,6 +14,9 @@ root.render(
         <Routes>
             <Route path="/"  element={<App/>} />
             <Route path="/updateNotionRepoInfo" element={<UpdateRepoInfoButton/>}/>
+            <Route path="/updateGithubWebhooks" element={<UpdateGithubWebhooksButton/>}/>
+            <Route path="/updateHooksSelect" element={<UpdateHooksSelectButton/>}/>
+            <Route path="/test" element={<TestButton/>}/>
         </Routes>
     </HashRouter>
     // </React.StrictMode>

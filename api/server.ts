@@ -6,11 +6,7 @@ import cors from 'cors';
 
 const app = express();
 
-const envPath = path.resolve(__dirname, '../.env');
-const result = dotenv.config({path: envPath});
-if (result.error) {
-    throw result.error;
-}
+
 
 const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
 const SERVER_PORT = process.env.SERVER_PORT;
@@ -44,17 +40,72 @@ app.use(passwordMiddleware);
 //     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 // });
 const service = new Service()
+app.post('/testme', (req: any, res: any) => {
+    console.log("test")
+    void (async () => {
+        try {
+            let ress = await service.github.getMe()
+            console.log(ress)
+            res.send({success: true});
+        } catch (e: any) {
+            console.error(e)
+            res.send({success: false, message: e.message});
+        }
+    })();
+})
+app.post('/test', (req: any, res: any) => {
+    console.log("test")
+    void (async () => {
+        try {
+            let ress = await service.github.getRepoInfo()
+            console.log(ress.slice(0, 3))
+            res.send({success: true});
+        } catch (e: any) {
+            console.error(e)
+            res.send({success: false, message: e.message});
+        }
+    })();
+})
 
 // 处理根路由
 app.post('/updateNotionRepoInfo', (req: any, res: any) => {
-    console.log("updateNotionRepoInfo", req)
+    // console.log("updateNotionRepoInfo", req)
     void (async () => {
-        await service.updateNotionRepoInfo()
-        res.send({success: true});
+        try {
+            await service.updateNotionRepoInfo(true)
+            res.send({success: true});
+        } catch (e: any) {
+            console.error(e)
+            res.send({success: false, message: e.message});
+        }
     })();
 });
 
+app.post('/updateHooksSelect', (req: any, res: any) => {
+    // console.log("updateHooksSelect", req)
+    void (async () => {
+        try {
+            await service.updateHooksSelect()
+            res.send({success: true});
+        } catch (e: any) {
+            console.error(e)
+            res.send({success: false, message: e.message});
+        }
+    })();
+});
 // 启动服务器
+app.post('/updateGithubWebhooks', (req: any, res: any) => {
+    // console.log("updateGithubWeebhooks", req)
+    void (async () => {
+        try {
+            await service.updateGithubWebhooks()
+            res.send({success: true});
+        } catch (e: any) {
+            console.error(e)
+            res.send({success: false, message: e.message});
+        }
+    })();
+})
 app.listen(SERVER_PORT, () => {
     console.log(`Server is running on port ${SERVER_PORT}`);
 });

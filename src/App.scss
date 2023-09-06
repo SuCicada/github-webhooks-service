@@ -1,15 +1,17 @@
 $loaderColor: #e32323;
 
 .myButton-container {
+  overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 90vh; /* 可视窗口高度 */
+  height: 80vh; /* 可视窗口高度 */
 
   .myButton {
     width: 100px;
     height: 40px;
     padding: 10px 20px;
+
     color: white;
     border: none;
     border-radius: 15px;
@@ -23,6 +25,7 @@ $loaderColor: #e32323;
       height: 50%;
       display: flex;
       align-items: center;
+      justify-content: center;
     }
 
     &[disabled] {
@@ -48,6 +51,22 @@ $loaderColor: #e32323;
     }
 
     &.noClick {
+      &.success {
+        background-color: #4caf50;
+
+        &:hover {
+          background-color: #087f23;
+        }
+      }
+
+      &.failed {
+        background-color: #f44336;
+
+        &:hover {
+          background-color: #a31515;
+        }
+      }
+
       background-color: #929fff;
 
       &:hover {

@@ -15,3 +15,6 @@ package-lock.json
 /api/*.js
 /src/*.js
 /src/*.js.map
+/server.yaml
+/api.yaml
+

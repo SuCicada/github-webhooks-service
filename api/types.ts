@@ -3,8 +3,13 @@ export interface WebhookType extends Record<string, any> {
     url: string,
 }
 
-export type UpdateRepoWebhooksType = Partial<RepoWebhooksType>;
-export type RepoWebhooksType = GitHubRepoType;
+export interface UpdateRepoWebhooksType extends Partial<RepoWebhooksType> {
+    id?: string,
+}
+
+export interface RepoWebhooksType extends GitHubRepoType {
+    webhooks: string[],  //  url tag, not real
+}
 
 // export interface RepoWebhooksType extends Record<string, any> {
 //     id?: string,
@@ -18,9 +23,29 @@ export type RepoWebhooksType = GitHubRepoType;
 
 export interface GitHubRepoType extends Record<string, any> {
     repo: string,
-    webhooks: string[],
+    webhooks: string[], // real url
     repo_update: string,
     permission: string,
     owner: string,
     html_url: string,
+}
+
+
+export interface ApiConfig {
+    server: {
+        password: string,
+    }
+    web: {
+        baseUrl: string,
+    }
+    notion: {
+        database: {
+            RepoWebhooks: string,
+            Webhooks: string,
+        }
+        button: Record<string, string>,
+        // [name: string]: string;
+        // }
+    }
+    apiConfig: {}
 }

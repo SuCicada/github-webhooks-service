@@ -2,19 +2,39 @@
 // import {Octokit} from "@octokit/core";
 import {Octokit} from "@octokit/rest";
 import {GitHubRepoType} from "./types";
+import {RestEndpointMethods} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/method-types";
+import {Api} from "@octokit/plugin-rest-endpoint-methods/dist-types/types";
 
+// import async from "async";
+// import {components} from "@octokit/openapi-types";
+import pLimit from "p-limit";
+// import fetch from "node-fetch";
+// const fetch = require('node-fetch');
 
 export class GitHubApi {
-    octokit: Octokit
+    octokit: {
+        paginate: import("@octokit/plugin-paginate-rest").PaginateInterface
+    } & RestEndpointMethods & Api & Octokit
 
     constructor() {
         let token = process.env.GITHUB_TOKEN;
-        const octokit = new Octokit({auth: token});
+        // console.log("token", token)
+        const octokit: {
+            paginate: import("@octokit/plugin-paginate-rest").PaginateInterface
+        } & RestEndpointMethods & Api & Octokit = new Octokit({auth: token,
+            // request: {fetch: fetch},
+            // log: {
+                // debug: console.log,
+                // info: console.log,
+                // warn: console.log,
+                // error: console.log
+            // }
+        });
         this.octokit = octokit
     }
 
     async getMe() {
-        let me = this.octokit.rest.users.getAuthenticated()
+        let me = await this.octokit.rest.users.getAuthenticated()
         return me
     }
 
@@ -27,50 +47,80 @@ export class GitHubApi {
             })
         } catch (error) {
             console.error('An error occurred:', owner, repo, error);
-            return null;
+            process.exit(1);
         }
     }
 
     async getRepoInfo() {
         let me = (await this.getMe()).data
         let login = me.login
+        console.log("[GitHubApi] login: ", login)
 
         let reposCount = me.public_repos + me.owned_private_repos
         let pageCnt = Math.ceil(reposCount / 100)
-        let acts = Array.from({length: pageCnt}, (_, index) => index + 1)
-            .map(i => async () => {
-                let res = await this.octokit.rest.repos.listForAuthenticatedUser({
-                    sort: "updated",
-                    per_page: 100,
-                    page: i
+        let acts =
+            // async.mapLimit(
+            Array.from({length: pageCnt}, (_, index) => index + 1)
+                .map(i => async () => {
+                    // 1,
+                    // async (i:number) => {
+                    let res = await this.octokit.rest.repos.listForAuthenticatedUser({
+                        // sort: "updated",
+                        per_page: 100,
+                        page: i
+                    })
+                    console.log(`[GitHubApi] listForAuthenticatedUser: ${i}/${pageCnt}`)
+                    return res.data
                 })
-                return res.data
-            })
-        let repos0 = await Promise.all(acts.map(r => r()))
+        let repos0 = await Promise.all(acts.map(a => a()))
+        // let repos0 = await acts
+
         let repos = repos0
             .flat()
             .filter(r => r.owner.login === login)
             .filter(r => r.name !== "utils")
 
+        console.log("[GitHubApi] repos: ", repos.length)
+        let index = 0
+        // let resActs = await async.mapLimit(repos, 10,
         let resActs = repos
-            .map(r => async () => {
-                let hooks = await this.getWebhooks(r.owner.login, r.name)
-                let hookUrls = hooks.data.map(h => h.config.url)
-                let permission = r.private ? "private" : "public"
-                let updated_at = r.updated_at
-                let res: GitHubRepoType = {
-                    repo: r.name, webhooks: hookUrls, repo_update: updated_at, permission,
-                    owner: r.owner.login,
-                    html_url: r.html_url,
-                }
-                return res
-            })
-
-        let res = await Promise.all(resActs.map(r => r()))
+            .map(
+                // async (r: components["schemas"]["repository"]) => {
+                r => async () =>{
+                    // })
+                    try {
+                        // let resActs1 = repos
+                        //     .map(r => async () => {
+                        let hooks = await this.getWebhooks(r.owner.login, r.name)
+                        let hookUrls = hooks.data.map(h => h.config.url)
+                        let permission = r.private ? "private" : "public"
+                        let updated_at = r.updated_at
+                        let res: GitHubRepoType = {
+                            repo: r.name,
+                            webhooks: hookUrls,
+                            repo_update: updated_at,
+                            permission,
+                            owner: r.owner.login,
+                            html_url: r.html_url,
+                        }
+                        console.log(`[GitHubApi] getWebhooks: ${index}/${repos.length}`)
+                        index++
+                        return res
+                    } catch (error) {
+                        console.error('An error occurred:', r, error);
+                        // return null;
+                        process.exit(1);
+                    }
+                })
+        // let limit = pLimit(10)
+        // let res = await Promise.all(resActs.map(r => limit(r)))
+        let res = await  promiseAllInBatches(resActs.map(r => r()), 1)
+        // let res = resActs
         res = res
+            // .filter(r => r !== null)
             .sort((a, b) =>
-                // @ts-ignore
-                b.repo_update - a.repo_update
+                // if b > a: [b, a]
+                b.repo_update.localeCompare(a.repo_update)
             )
         // res = res.map(r => {
         //     return {
@@ -123,3 +173,13 @@ export class GitHubApi {
 }
 
 // exports.GitHubApi = GitHubApi
+async function promiseAllInBatches<T>(items:Promise<T>[], batchSize:number) {
+    let position = 0;
+    let results:T[] = [];
+    while (position < items.length) {
+        const itemsForBatch = items.slice(position, position + batchSize);
+        results = [...results, ...await Promise.all(itemsForBatch)];
+        position += batchSize;
+    }
+    return results;
+}

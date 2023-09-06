@@ -3,22 +3,32 @@ import {
     PageObjectResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 import {RepoWebhooksType, UpdateRepoWebhooksType, WebhookType} from "./types";
+import {apiConfig} from "./config";
 
-
+// console.log("process.env.NOTION_TOKEN", process.env.NOTION_TOKEN)
 // Initializing a client
-const notion = new Client({
-    auth: process.env.NOTION_TOKEN,
-})
 
-export const notionClient = notion
+// export const notionClient = notion
 
+// function getNotionClient() {
+//     notion = new Client({
+//         auth: process.env.NOTION_TOKEN,
+//     })
+//     return notion
+// }
 
 export class RepoWebhooks {
-    database_id = process.env.DATABASE_ID_RepoWebhooks
+    notion: Client
+
+    constructor(_notion: Client) {
+        this.notion = _notion
+    }
+
+    database_id = apiConfig.notion.database.RepoWebhooks
 
     async updatePage(repoWebhooks: UpdateRepoWebhooksType) {
         // let properties: Record<string, any> = {}
-        await notion.pages.update({
+        return await this.notion.pages.update({
             page_id: repoWebhooks.id,
             properties: {
                 ...(repoWebhooks.repo !== undefined ? {repo: set.title(repoWebhooks.repo)} : {}),
@@ -33,7 +43,7 @@ export class RepoWebhooks {
 
     async updateHooksSelect(prop: string, webhooks_options: any[]) {
         console.log(webhooks_options)
-        await notion.databases.update({
+        await this.notion.databases.update({
             database_id: this.database_id,
             properties: {
                 [prop]: {
@@ -50,7 +60,7 @@ export class RepoWebhooks {
         let has_more = false
         let data = []
         do {
-            let pageData = await notion.databases.query({
+            let pageData = await this.notion.databases.query({
                 database_id: this.database_id,
                 sorts: [{
                     property: 'repo_update',
@@ -75,7 +85,8 @@ export class RepoWebhooks {
                 let permission = prop.permission.select.name
                 let owner = prop.owner.select?.name
                 let html_url = prop.html_url.url
-                return {id, repo, webhooks, repo_update, permission, owner, html_url}
+                let res: RepoWebhooksType = {id, repo, webhooks, repo_update, permission, owner, html_url}
+                return res
             })
         console.log("[RepoWebhooks] getAll over")
         return res
@@ -83,7 +94,7 @@ export class RepoWebhooks {
 
     async set(repoWebhooks: RepoWebhooksType) {
         let {repo, webhooks, repo_update, permission} = repoWebhooks
-        await notion.pages.create({
+        await this.notion.pages.create({
             parent: {
                 database_id: this.database_id,
             },
@@ -92,16 +103,23 @@ export class RepoWebhooks {
                 webhooks: set.multi_select(webhooks),
                 repo_update: set.date(repo_update),
                 permission: set.select(permission),
+                owner: set.select(repoWebhooks.owner),
+                html_url: set.url(repoWebhooks.html_url),
             },
         });
     }
 }
 
 export class Webhooks {
-    database_id =   process.env.DATABASE_ID_Webhooks
+    database_id = apiConfig.notion.database.Webhooks
+    notion: Client
+
+    constructor(_notion: Client) {
+        this.notion = _notion
+    }
 
     async getAll() {
-        let data = await notion.databases.query({
+        let data = await this.notion.databases.query({
             database_id: this.database_id,
             sorts: [{
                 property: 'id',
@@ -125,7 +143,7 @@ export class Webhooks {
     }
 
     async set(name: string, url: string) {
-        await notion.pages.create({
+        await this.notion.pages.create({
             parent: {
                 database_id: this.database_id,
             },
@@ -138,8 +156,11 @@ export class Webhooks {
 }
 
 export class NotionApi {
-    repoWebhooks = new RepoWebhooks()
-    webhooks = new Webhooks()
+    notionClient = new Client({
+        auth: process.env.NOTION_TOKEN,
+    })
+    repoWebhooks = new RepoWebhooks(this.notionClient)
+    webhooks = new Webhooks(this.notionClient)
 }
 
 // exports.NotionApi = NotionApi
