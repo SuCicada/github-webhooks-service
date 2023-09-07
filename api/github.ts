@@ -94,7 +94,7 @@ export class GitHubApi {
                         let hooks = await this.getWebhooks(r.owner.login, r.name)
                         let hookUrls = hooks.data.map(h => h.config.url)
                         let permission = r.private ? "private" : "public"
-                        let updated_at = r.updated_at
+                        let updated_at = r.pushed_at
                         let res: GitHubRepoType = {
                             repo: r.name,
                             webhooks: hookUrls,
