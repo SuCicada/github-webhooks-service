@@ -3,7 +3,7 @@ const path = require('path');
 module.exports = {
     target: 'node',
 
-    entry: "./api/server.ts",
+    entry: "./api/index.ts",
     module: {
         rules: [
             {
@@ -19,7 +19,7 @@ module.exports = {
     },
     output: {
         path: path.resolve(__dirname, 'dist'), // 输出目录
-        filename: "server.js", // 需要跟你在src文件夹中导出文件的文件名一致
+        filename: "index.js", // 需要跟你在src文件夹中导出文件的文件名一致
         globalObject: "this",
         libraryTarget: "umd", //支持库的引入方式
     },

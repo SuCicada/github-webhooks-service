@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "outDir": "./dist",               // 输出目录
+//    "rootDir": "./src",
     "module": "CommonJS",
 //            "module": "esnext",
     "types": [
@@ -29,13 +31,13 @@
     "isolatedModules": true,
     "noEmit": false,
     //        "jsx": "react-jsx",
-    "jsx": "react"
+//    "jsx": "react"
     //    "baseUrl": "./src"
+
   },
   "include": [
-    "./**/*",
-    "node_modules/@types/jest/index.d.ts"
-  ]
+    "./api/**/*",
+  ],
   //  "exclude": [
   //    "**/*.tsx"
   //  ]

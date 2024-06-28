@@ -50,8 +50,15 @@ export class GitHubApi {
             process.exit(1);
         }
     }
+    async getRepoInfo(owner: string, repo: string) {
+        let r = await this.octokit.rest.repos.get({
+            owner: owner,
+            repo: repo,
+        })
+        return r.data
+    }
 
-    async getRepoInfo() {
+    async getAllRepoInfo() {
         let me = (await this.getMe()).data
         let login = me.login
         console.log("[GitHubApi] login: ", login)
@@ -135,7 +142,7 @@ export class GitHubApi {
     }
 
     async getAllUsedWebhooks() {
-        let repoInfos = await this.getRepoInfo()
+        let repoInfos = await this.getAllRepoInfo()
         let res = repoInfos
             .map(r => r.webhooks)
             .flat()
