@@ -1,0 +1,9 @@
+{
+  "watch": [
+    "api"
+  ],
+  "ignore": [
+    "node_modules",
+    "dist"
+  ]
+}

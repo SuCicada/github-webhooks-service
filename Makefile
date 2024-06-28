@@ -4,17 +4,17 @@ ifneq ("$(wildcard .env.deploy)","")
 endif
 
 # ========== upload ==========
-.PHONY: build
+.PHONY: build run
+
+run: dev
+dev:
+	yarn dev
 
 build: clean-all
 	yarn build
 
 start:
 	node dist/index.js
-
-run:
-dev:
-	yarn dev
 
 clean-all: clean
 	rimraf dist

@@ -1,14 +1,13 @@
-import express, {NextFunction, RequestHandler} from "express";
-import dotenv from 'dotenv';
-import path from "path";
+import express, {NextFunction} from "express";
 import cors from 'cors';
-import {ParamsDictionary, RequestHandlerParams} from "express-serve-static-core";
 import {Service} from "./service";
+import {initEnv} from "./config";
+
+initEnv()
 
 const app = express();
 const service = new Service()
 import {Request, Response} from 'express';
-import {ParsedQs} from "qs";
 
 
 const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
@@ -38,44 +37,44 @@ const passwordMiddleware = (req, res, next) => {
     }
 };
 app.use(cors());
+app.use(express.urlencoded({extended: true}));
+app.use(express.json());
 
 // 应用中间件
 app.use(passwordMiddleware);
+app.get("/me", asyncHandler(async (req, res) => {
+    const data = await service.github.getMe()
+    res.send({success: true, data});
+}))
+app.get("/getRepoInfo", asyncHandler(async (req: any, res: any) => {
+    let {owner, repo} = req.query
+    let data = await service.github.getRepoInfo(owner, repo)
+    res.send({success: true, data});
+}))
 
-// app.use(express.static(path.join(__dirname, '../build')));
+app.get("/getAllRepoInfo", asyncHandler(async (req, res) => {
+    let {page, per_page} = req.query as any
+    console.log("getAllRepoInfo", req.query)
+    let data = await service.github.getPageRepoInfo(page, per_page)
+    res.send({success: true, data});
+}))
 
-// 设置路由，返回 HTML 页面
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-// });
-app.get("/getRepoInfo", async (req: any, res: any) => {
-    try {
-        let {owner, repo} = req.query
-        let data = await service.github.getRepoInfo(owner, repo)
-        res.send({success: true, data});
-    } catch (e: any) {
-        console.error(e)
-        res.send({success: false, message: e.message});
+app.get("/getRepoWebhooks", asyncHandler(async (req, res) => {
+    // try {
+    let {owner, repo, full} = req.query as any
+    full = full === "true"
+    let data = await service.github.getWebhooks(owner, repo)
+    let resData = data.data
+    if (!full) {
+        // resData = resData.map((d:any)=>d.config.url)
     }
-})
-app.get("/getRepoWebhooks", async (req, res) => {
-    try {
-        let {owner, repo, full} = req.query as any
-        full = full === "true"
-        let data = await service.github.getWebhooks(owner, repo)
-        let resData = data.data
-        if (!full) {
-            // resData = resData.map((d:any)=>d.config.url)
-        }
-        res.send({success: true, data: resData});
-    } catch (e: any) {
-        console.error(e)
-        res.send({success: false, message: e.message});
-    }
-})
+    res.send({success: true, data: resData});
+}))
+
 app.post("/updateWebhook", asyncHandler(async (req, res) => {
-    let {owner, repo, webhooks} = req.body
-    await service.github.updateWebhook(owner, repo, webhooks)
+    let {owner, repo, webhooks, events} = req.body
+    console.log("updateWebhook", req.body)
+    await service.github.updateWebhook(owner, repo, webhooks, events)
     res.send({success: true});
 }))
 
@@ -84,6 +83,7 @@ app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).send({success: false, message: err.message});
 });
+
 app.listen(SERVER_PORT, () => {
     console.log(`Server is running on port ${SERVER_PORT}`);
 });

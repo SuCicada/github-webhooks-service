@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "dev": "nodemon --exec ts-node-dev api/server.ts",
+    "dev": "nodemon --exec ts-node-dev api/index.ts",
     "build": "rimraf dist && npx vite build"
   },
   "dependencies": {

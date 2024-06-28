@@ -18,16 +18,19 @@ export class GitHubApi {
 
     constructor() {
         let token = process.env.GITHUB_TOKEN;
-        // console.log("token", token)
+        if (!token) {
+            throw new Error("process.env.GITHUB_TOKEN is not defined")
+        }
         const octokit: {
             paginate: import("@octokit/plugin-paginate-rest").PaginateInterface
-        } & RestEndpointMethods & Api & Octokit = new Octokit({auth: token,
+        } & RestEndpointMethods & Api & Octokit = new Octokit({
+            auth: token,
             // request: {fetch: fetch},
             // log: {
-                // debug: console.log,
-                // info: console.log,
-                // warn: console.log,
-                // error: console.log
+            // debug: console.log,
+            // info: console.log,
+            // warn: console.log,
+            // error: console.log
             // }
         });
         this.octokit = octokit
@@ -35,7 +38,7 @@ export class GitHubApi {
 
     async getMe() {
         let me = await this.octokit.rest.users.getAuthenticated()
-        return me
+        return me.data
     }
 
     async getWebhooks(owner: string, repo: string) {
@@ -47,9 +50,11 @@ export class GitHubApi {
             })
         } catch (error) {
             console.error('An error occurred:', owner, repo, error);
-            process.exit(1);
+            // process.exit(1);
+            throw error
         }
     }
+
     async getRepoInfo(owner: string, repo: string) {
         let r = await this.octokit.rest.repos.get({
             owner: owner,
@@ -58,8 +63,50 @@ export class GitHubApi {
         return r.data
     }
 
+    async getPageRepoInfo(page: number, per_page: number) {
+        const repos = await this.octokit.rest.repos.listForAuthenticatedUser({
+            // sort: "updated",
+            per_page,
+            page,
+            affiliation: "owner",
+            sort: "updated",
+        })
+        let me = (await this.getMe())
+
+        let resActs = repos.data.map(r => async () => {
+            try {
+                let hookUrls: string[] = []
+                if (r.owner.login == me.login) {
+                    let hooks = await this.getWebhooks(r.owner.login, r.name)
+                    hookUrls = hooks.data.map(h => h.config.url)
+                }
+                let permission = r.private ? "private" : "public"
+                let updated_at = r.pushed_at
+                let res: GitHubRepoType = {
+                    repo: r.name,
+                    webhooks: hookUrls,
+                    repo_update: updated_at,
+                    permission,
+                    owner: r.owner.login,
+                    html_url: r.html_url,
+                }
+                return res
+            } catch (error) {
+                console.error('An error occurred:', r, error);
+            }
+            return null
+        }).filter(r => r !== null)
+
+        let res = await promiseAllInBatches(resActs.map(r => r()), 1)
+        res = res.sort((a, b) =>
+            // if b > a: [b, a]
+            b.repo_update.localeCompare(a.repo_update)
+        )
+        return res
+    }
+
     async getAllRepoInfo() {
-        let me = (await this.getMe()).data
+        let me = (await this.getMe())
         let login = me.login
         console.log("[GitHubApi] login: ", login)
 
@@ -69,8 +116,6 @@ export class GitHubApi {
             // async.mapLimit(
             Array.from({length: pageCnt}, (_, index) => index + 1)
                 .map(i => async () => {
-                    // 1,
-                    // async (i:number) => {
                     let res = await this.octokit.rest.repos.listForAuthenticatedUser({
                         // sort: "updated",
                         per_page: 100,
@@ -93,7 +138,7 @@ export class GitHubApi {
         let resActs = repos
             .map(
                 // async (r: components["schemas"]["repository"]) => {
-                r => async () =>{
+                r => async () => {
                     // })
                     try {
                         // let resActs1 = repos
@@ -121,7 +166,7 @@ export class GitHubApi {
                 })
         // let limit = pLimit(10)
         // let res = await Promise.all(resActs.map(r => limit(r)))
-        let res = await  promiseAllInBatches(resActs.map(r => r()), 1)
+        let res = await promiseAllInBatches(resActs.map(r => r()), 1)
         // let res = resActs
         res = res
             // .filter(r => r !== null)
@@ -151,38 +196,51 @@ export class GitHubApi {
         return res
     }
 
-    async updateWebhook(owner: string, repo: string, webhooks: string[]) {
+    async updateWebhook(owner: string, repo: string, webhooks: string[], events?: string[]) {
+        if (!events || events.length === 0) {
+            events = ["*"]
+        }
         let hooks = await this.getWebhooks(owner, repo)
+        console.log("[updateWebhook] current hooks: ", hooks.data.length)
         let deleteActs = hooks.data.map(async (h) => {
-            await this.octokit.rest.repos.deleteWebhook({
+            let res = await this.octokit.rest.repos.deleteWebhook({
                 owner: owner,
                 repo: repo,
                 hook_id: h.id
             })
             console.log(`[updateWebhook] ${owner} ${repo}: delete ${h.id} success`)
+            return res
         })
 
         let createActs = webhooks.map(async (webhook) => {
-            await this.octokit.rest.repos.createWebhook({
+            let res = await this.octokit.rest.repos.createWebhook({
                 owner: owner,
                 repo: repo,
                 config: {
                     url: webhook,
                     content_type: "json",
                 },
-                events: ["*"],
+                events: events,
             })
             console.log(`[updateWebhook] ${owner} ${repo}: create ${webhook} success`)
+            return res
         })
+        let res: any[]
+        let ress = []
 
-        await Promise.all([...deleteActs, ...createActs])
+        res = await Promise.all(deleteActs)
+        ress.push(...res)
+        res = await Promise.all(createActs)
+        ress.push(...res)
+        return ress
+        // return await Promise.all([...deleteActs, ...createActs])
     }
 }
 
 // exports.GitHubApi = GitHubApi
-async function promiseAllInBatches<T>(items:Promise<T>[], batchSize:number) {
+async function promiseAllInBatches<T>(items: Promise<T>[], batchSize: number) {
     let position = 0;
-    let results:T[] = [];
+    let results: T[] = [];
     while (position < items.length) {
         const itemsForBatch = items.slice(position, position + batchSize);
         results = [...results, ...await Promise.all(itemsForBatch)];
