@@ -3,11 +3,15 @@ import cors from 'cors';
 import {Service} from "./service";
 import {initEnv} from "./config";
 
+// @ts-ignore
+import openapi from "@wesleytodd/openapi";
+
 initEnv()
 
 const app = express();
 const service = new Service()
 import {Request, Response} from 'express';
+import webhooksRouter from "./webhooks";
 
 
 const SERVER_PASSWORD = process.env.SERVER_PASSWORD;
@@ -36,17 +40,61 @@ const passwordMiddleware = (req, res, next) => {
         res.send({success: false, message: 'Unauthorized'});
     }
 };
+const oapi = openapi({
+    openapi: '3.0.0',
+    info: {
+        title: 'Express Application',
+        description: 'Generated docs from an Express api',
+        version: '1.0.0',
+    }
+})
+app.use(oapi)
+
 app.use(cors());
 app.use(express.urlencoded({extended: true}));
 app.use(express.json());
 
 // 应用中间件
 app.use(passwordMiddleware);
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`, req.query, req.body);
+    next();
+})
+
 app.get("/me", asyncHandler(async (req, res) => {
     const data = await service.github.getMe()
     res.send({success: true, data});
 }))
-app.get("/getRepoInfo", asyncHandler(async (req: any, res: any) => {
+app.get("/getRepoInfo", oapi.path({
+    description: 'Get a foo',
+    requestBody: {
+        content: {
+            'application/json': {
+                schema: {
+                    type: 'object',
+                    properties: {
+                        owner: {type: 'string'},
+                        repo: {type: 'string'}
+                    }
+                }
+            }
+        }
+    },
+    responses: {
+        200: {
+            content: {
+                'application/json': {
+                    schema: {
+                        type: 'object',
+                        properties: {
+                            foo: {type: 'string'}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}), asyncHandler(async (req: any, res: any) => {
     let {owner, repo} = req.query
     let data = await service.github.getRepoInfo(owner, repo)
     res.send({success: true, data});
@@ -78,12 +126,12 @@ app.post("/updateWebhook", asyncHandler(async (req, res) => {
     res.send({success: true});
 }))
 
+app.use("/webhooks", webhooksRouter)
 // @ts-ignore
 app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).send({success: false, message: err.message});
 });
-
 app.listen(SERVER_PORT, () => {
     console.log(`Server is running on port ${SERVER_PORT}`);
 });

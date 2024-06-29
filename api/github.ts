@@ -12,18 +12,14 @@ import pLimit from "p-limit";
 // const fetch = require('node-fetch');
 
 export class GitHubApi {
-    octokit: {
-        paginate: import("@octokit/plugin-paginate-rest").PaginateInterface
-    } & RestEndpointMethods & Api & Octokit
+    octokit:  Octokit
 
     constructor() {
         let token = process.env.GITHUB_TOKEN;
         if (!token) {
             throw new Error("process.env.GITHUB_TOKEN is not defined")
         }
-        const octokit: {
-            paginate: import("@octokit/plugin-paginate-rest").PaginateInterface
-        } & RestEndpointMethods & Api & Octokit = new Octokit({
+        const octokit = new Octokit({
             auth: token,
             // request: {fetch: fetch},
             // log: {

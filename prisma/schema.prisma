@@ -1,0 +1,14 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model webhooks {
+  id   Int     @id(map: "webhooks_pk") @default(autoincrement())
+  name String? @db.VarChar(20)
+  url  String? @db.VarChar(500)
+}

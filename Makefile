@@ -21,3 +21,7 @@ clean-all: clean
 
 clean:
 	ts-clean-built --built
+
+init:
+	#npx prisma db pull
+	npx prisma generate
