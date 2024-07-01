@@ -1,7 +1,8 @@
 import express from "express";
 import { Prisma, PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
-
+import { Operation } from "express-openapi";
+// console.log('DATABASE_URL:', process.env.DATABASE_URL);
 const webhooksRouter = express.Router();
 
 webhooksRouter.get("/", async (req, res) => {

@@ -1,0 +1,12 @@
+.idea
+*.iml
+build
+node_modules
+.env*
+yarn-error.log
+/dist
+package-lock.json
+/html
+dev.md
+
+

@@ -1,7 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { VitePluginNode } from 'vite-plugin-node';
+import packageJson from "./package.json";
+// import legacy from '@vitejs/plugin-legacy';
 
+const dependencies = Object.keys({
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies,
+});
 export default defineConfig({
     build: {
         lib: {
@@ -9,24 +15,25 @@ export default defineConfig({
             fileName: 'index',
             name: 'index',
             formats: [
-            "cjs",
-            // 'umd'
+            // "cjs",
+            'umd'
             ]
         },
         rollupOptions: {
             external: [],
             output: {
-                inlineDynamicImports: true
+                inlineDynamicImports: true,
+                entryFileNames: 'github-webhooks-service.js',
             }
         },
         target: 'node18',
         outDir: 'dist',
-        minify: true,
+        // minify: true,
         sourcemap: false,
         emptyOutDir: true,
     },
     resolve: {
-        extensions: ['.ts', '.js']
+        extensions: ['.ts', '.js'],
     },
     plugins: [
         VitePluginNode({
@@ -41,6 +48,8 @@ export default defineConfig({
             // "*",
             // "@octokit/rest"
             'path', 'fs', 'os', // 确保这些核心模块不会被优化外部化
+            ".prisma/*",
+
         ],
     },
     ssr: {
@@ -49,6 +58,8 @@ export default defineConfig({
             // "@octokit/rest",
             "@*",
             "@*/*",
+            ".prisma/*",
+            ...dependencies
         ],
     }
 });
