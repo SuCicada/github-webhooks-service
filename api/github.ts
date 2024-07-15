@@ -1,7 +1,7 @@
 // Create a personal access token at https://github.com/settings/tokens/new?scopes=repo
 // import {Octokit} from "@octokit/core";
 import {Octokit} from "@octokit/rest";
-import {GitHubRepoType} from "./types";
+import {GitHubRepoType,} from "./types";
 import {RestEndpointMethods} from "@octokit/plugin-rest-endpoint-methods/dist-types/generated/method-types";
 import {Api} from "@octokit/plugin-rest-endpoint-methods/dist-types/types";
 
@@ -12,7 +12,7 @@ import pLimit from "p-limit";
 // const fetch = require('node-fetch');
 
 export class GitHubApi {
-    octokit:  Octokit
+    octokit: Octokit
 
     constructor() {
         let token = process.env.GITHUB_TOKEN;
@@ -64,10 +64,11 @@ export class GitHubApi {
             // sort: "updated",
             per_page,
             page,
-            affiliation: "owner",
+            affiliation: "owner", // 只要我的
             sort: "updated",
         })
         let me = (await this.getMe())
+        let reposCount = me.public_repos + me.owned_private_repos
 
         let resActs = repos.data.map(r => async () => {
             try {
@@ -98,10 +99,33 @@ export class GitHubApi {
             // if b > a: [b, a]
             b.repo_update.localeCompare(a.repo_update)
         )
-        return res
+        return {
+            count: reposCount,
+            repos: res
+        }
     }
 
-    async getAllRepoInfo() {
+    async getAllRepoInfo(prePage = 50) {
+        if (!prePage || prePage > 100) {
+            prePage = 50
+        }
+        let me = await this.getMe()
+        let login = me.login
+        console.log("[GitHubApi] login: ", login)
+
+        let reposCount = me.public_repos + me.owned_private_repos
+        let pageCnt = Math.ceil(reposCount / prePage)
+        const repoInfos: GitHubRepoType[] = []
+        for (let i = 1; i <= pageCnt; i++) {
+            const pageRepoInfos = await this.getPageRepoInfo(i, prePage)
+            repoInfos.push(...pageRepoInfos.repos)
+            console.log(`[GitHubApi] listForAuthenticatedUser: ${i}/${pageCnt}`)
+        }
+        console.log("[GitHubApi] getRepoInfo over")
+        return repoInfos
+    }
+
+    async getAllRepoInfo0() {
         let me = (await this.getMe())
         let login = me.login
         console.log("[GitHubApi] login: ", login)
@@ -194,7 +218,7 @@ export class GitHubApi {
 
     async updateWebhook(owner: string, repo: string, webhooks: string[], events?: string[]) {
         if (!events || events.length === 0) {
-            events = ["*"]
+            events = ['push', 'workflow_run']
         }
         let hooks = await this.getWebhooks(owner, repo)
         console.log("[updateWebhook] current hooks: ", hooks.data.length)

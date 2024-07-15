@@ -82,12 +82,19 @@ app.get("/getRepoInfo", asyncHandler(async (req: any, res: any) => {
     res.send({success: true, data});
 }))
 
-app.get("/getAllRepoInfo", asyncHandler(async (req, res) => {
+app.get("/getPageRepoInfo", asyncHandler(async (req, res) => {
     let {page, per_page} = req.query as any
-    console.log("getAllRepoInfo", req.query)
+    console.log("getPageRepoInfo", req.query)
     let data = await service.github.getPageRepoInfo(page, per_page)
     res.send({success: true, data});
 }))
+app.post("/getAllRepoInfo", asyncHandler(async (req, res) => {
+    let {perPage} = req.body
+    console.log("getAllRepoInfo", perPage)
+    let data = await service.github.getAllRepoInfo(perPage)
+    res.send({success: true, data});
+}))
+
 
 app.get("/getRepoWebhooks", asyncHandler(async (req, res) => {
     // try {
